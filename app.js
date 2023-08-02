@@ -26,6 +26,28 @@ const initiateDBAndServer = async () => {
 
 initiateDBAndServer();
 
+const middleware = (req, res, next) => {
+  let jwtToken;
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    jwtToken = authHeader.split(" ")[1];
+  }
+
+  if (!jwtToken) {
+    res.send(401).send("Invalid JWT Token1");
+  } else {
+    jwt.verify(jwtToken, "my_secret_token", async (err, data) => {
+      if (err) {
+        console.log(err);
+        res.status(401).send("Invalid JWT Token2");
+      } else {
+        req.username = data.username;
+        next();
+      }
+    });
+  }
+};
+
 app.post("/register", async (req, res) => {
   const userDetails = req.body;
   const { username, password, gender, name } = userDetails;
@@ -72,10 +94,20 @@ app.post("/login/", async (req, res) => {
       const payload = {
         username,
       };
-      const jwtToken = jwt.sign(payload, "mu_secret_token");
+      const jwtToken = jwt.sign(payload, "my_secret_token");
       res.send({ jwtToken });
     } else {
       res.status(400).send("Invalid password");
     }
   }
+});
+
+app.get("/user/tweets/feed", middleware, async (req, res) => {
+  const sql = `SELECT * FROM tweet
+    LEFT JOIN user ON "user"."user_id" = "tweet"."user_id"
+    WHERE "user"."name" = '${req.username}'
+    LIMIT 4`;
+
+  const resp = db.all(sql);
+  res.send(resp);
 });
