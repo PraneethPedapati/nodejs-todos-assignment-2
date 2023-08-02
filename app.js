@@ -111,3 +111,29 @@ app.get("/user/tweets/feed", middleware, async (req, res) => {
   const resp = db.all(sql);
   res.send(resp);
 });
+
+app.get("/user/following", middleware, async (req, res) => {
+  const sql = `SELECT name FROM user
+    WHERE user_id IN 
+    (
+        SELECT follower.following_user_id FROM follower
+    LEFT JOIN user ON follower.follower_user_id = user.user_id
+    WHERE user.username = '${req.username}'
+    )`;
+
+  let resp = await db.all(sql);
+  res.send(resp);
+});
+
+app.get("/user/followers", middleware, async (req, res) => {
+  const sql = `SELECT name FROM user
+    WHERE user_id IN
+    (
+        SELECT follower.follower_user_id FROM follower
+    LEFT JOIN user ON follower.following_user_id = user.user_id
+    WHERE user.username = '${req.username}'
+    )`;
+
+  let resp = await db.all(sql);
+  res.send(resp);
+});
