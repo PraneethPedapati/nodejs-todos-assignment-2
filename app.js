@@ -4,6 +4,7 @@ const { open } = require("sqlite");
 const sqlite3 = require("sqlite3");
 const path = require("path");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 app.use(express.json());
 
@@ -50,6 +51,31 @@ app.post("/register", async (req, res) => {
 
       let newUser = await db.run(insertSql);
       res.send("Successful registration of the registrant");
+    }
+  }
+});
+
+app.post("/login/", async (req, res) => {
+  const userDetails = req.body;
+  const { username, password } = userDetails;
+
+  let userSql = `SELECT * FROM user WHERE username = '${username}'`;
+
+  let user = await db.get(userSql);
+
+  if (!user) {
+    res.status(400).send("Invalid user");
+  } else {
+    const isPasswordMatched = await bcrypt.compare(password, user.password);
+
+    if (isPasswordMatched) {
+      const payload = {
+        username,
+      };
+      const jwtToken = jwt.sign(payload, "mu_secret_token");
+      res.send({ jwtToken });
+    } else {
+      res.status(400).send("Invalid password");
     }
   }
 });
